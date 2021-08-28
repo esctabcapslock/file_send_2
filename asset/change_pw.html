@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비밀번호 변경</title>
+    <style>
+        form>div{
+            display: table-row;
+        }
+        form>div>*{
+            display: table-cell;
+        }
+    </style>
+</head>
+<body>
+    <form id='login' method='post' action="/auth/update/pw">
+        
+        <div><label for='pre_pw'>현재 비밀번호</label><input id='pre_pw' name='pre_pw' type="password" ></div>
+        <div><label for='next_pw'>새 비밀번호</label><input name='next_pw' type="password" ></div>
+        <div><label for='next_pw_2'>새 비밀번호 확인</label><input id='next_pw_2' name='next_pw_2' type="password" ></div>
+        <div><input type="submit" value="변경"></div>
+    </form>
+    <button onclick="history.back()">뒤로가기</button>
+</body>
+</html>
