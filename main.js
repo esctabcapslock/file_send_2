@@ -7,6 +7,9 @@ const NFD2NFC = require('./module/NFC-NFD').NFD2NFC
 const S_Socket_Server = require("./module/s_socket_server").S_Socket_Server;
 const file_list_html = new S_Socket_Server('file_list_html',file_list_2_html())
 
+
+const iconvlite = require('iconv-lite');
+
 //내 주소 알아내기
 const my_ip = require("./module/my_ip").my_ip();
 console.log('내 컴퓨터 주소:',my_ip)
@@ -196,7 +199,7 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
                                 else{
                                     console.log('성공적으로 옮겨짐.')
                                     resolve(name)
-                                }    
+                                }
                             })
                             
                         }})(file_name);
@@ -279,16 +282,18 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
     else if(url_list[1]=='files' && ok(decodeURIComponent(url_list[2])) && fs.existsSync('./files/'+decodeURIComponent(url_list[2]))){
         
         const file_name = decodeURIComponent(url_list[2])
+        const encoding_file_name = iconvlite.decode(iconvlite.encode(file_name, "UTF-8"), 'ISO-8859-1');
         
         const file_url=`./files/`+file_name;
         console.log('[file_url]',file_url)
             
         const 확장자='application/octet-stream';
+        console.log(file_name,'file_name', encoding_file_name)
         응답.writeHead(200, {
             'Content-Type':확장자, 
             'Accept-Ranges': 'bytes',
             'Content-Transfer-Encoding': 'binary',
-            'Content-disposition': `attachment; filename="${encodeURIComponent(file_name)}"`
+            'Content-disposition': `attachment; filename="${encoding_file_name}"`//encodeURICmponent
         });
 
         var stream = fs.createReadStream(file_url);
