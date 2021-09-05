@@ -65,7 +65,9 @@ const Login = {
         const method = req.method
         const url = req.url
         const referer = req.headers.referer
-       
+        let level = 0;
+
+
         if (!allowed && url=='/auth/value' && method=='POST'){
             var body='';
             req.on('data', (chunk)=>body += chunk);
@@ -119,7 +121,7 @@ const Login = {
             res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8' });
             res.end('<meta http-equiv="refresh" content="0;URL=\'/\'" />')
         }
-        else callback(req, res)
+        else callback(req, res, level)    
     }
 }
 

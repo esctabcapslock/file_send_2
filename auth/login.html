@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <style>
+        form>div{
+            display: table-row;
+        }
+        form>div>*{
+            display: table-cell;
+        }
+    </style>
+</head>
+<body>
+   <form id='login' method='post' action="/auth/api/signin">
+    <div><label for='account'>아이디</label><input id='account' name='account' type="text" autofocus></div>
+    <div><label for='pw'>비밀번호</label><input name='pw' type="password" ></div>
+   <input type="submit" value="로그인">
+   </form>
+   <a href="signup">회원가입</a>
+</body>
+</html>

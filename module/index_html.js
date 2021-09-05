@@ -23,8 +23,9 @@ return `<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <a href='/auth/edit/pw'>비밀번호 변경</a>
+    <a href='/auth/edit_pw'>비밀번호 변경</a>
     <a href='/auth/logout'>로그아웃</a>
+    <a href='/auth/set_level'>권한설정</a>
     <h3>보내기</h3>
     <form action="./file" method="POST" id='file_input' enctype="multipart/form-data">
         <input type="file"  multiple name="name">

@@ -2,13 +2,28 @@ var http = require('http');
 var fs = require('fs');
 const port = 80;
 const make_index_html = require('./module/index_html').make_index_html
-const Login = require('./module/login').Login
+const Login = require('./module/login_http').Login
 const NFD2NFC = require('./module/NFC-NFD').NFD2NFC
 const S_Socket_Server = require("./module/s_socket_server").S_Socket_Server;
 const file_list_html = new S_Socket_Server('file_list_html',file_list_2_html())
 
 
 const iconvlite = require('iconv-lite');
+
+
+const readline = require("readline");
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+rl.on("line", function(line) {
+  console.log("hello !", line);
+  rl.close();
+}).on("close", function() {
+  process.exit();
+});
+
 
 //내 주소 알아내기
 const my_ip = require("./module/my_ip").my_ip();
@@ -34,19 +49,19 @@ function is(xx){
 }
 
 function file_list_2_html(){
-    파일목록 = fs.readdirSync('./files')
+    파일목록 = fs.readdirSync('./files');
     return 파일목록.map(v=>`<li><a href="./files/${v}"><pre>${v}</pre></a> <a href="./delete/${v}">삭제</a></li>`).join('')
 }
 
 
 
-var server = http.createServer((요청, 응답) => { Login.server(요청, 응답, (요청, 응답)=>{
+var server = http.createServer((요청, 응답) => { Login.server(요청, 응답, (요청, 응답, level)=>{
 
     const _url = 요청.url;
     const url_list = _url.split('/')
     const _method = 요청.method;
     const _ip = 요청.headers['x-forwarded-for'] ||  요청.connection.remoteAddress
-    console.log(_ip, decodeURIComponent(_url),_method);
+    console.log('[level]',level, _ip, decodeURIComponent(_url),_method);
 
     
     if (_url == '/' && _method == "GET") {
@@ -63,6 +78,11 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
         응답.writeHead(200, {'Content-Type': 'text/JavaScript; charset=utf-8' });
         응답.end(file);
     }else if (_url == '/file' && _method == 'POST') {
+        if(level<2){
+            응답.writeHead(403,{'Content-Type': 'text/html; charset=utf-8'});
+            응답.end(`<script>alert('권한 없음')</script> <meta http-equiv="refresh" content="0;URL='/'" />`);
+            return;
+        }
         
         const df = x => x.replace(/\n/g,'\\n+\n').replace(/\r/g,'\\r')
         const positive = x => x>0?x:0
@@ -130,8 +150,19 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
                             console.log('[file_name]',file_name)
                             file_name=NFD2NFC(file_name)
                             file_name=file_name.match(/\s|[()]|[+-.]|[0-9]|@|[A-Z]|\[|\]|_|[a-z]|[가-힣]|[ㄱ-ㅎ]|[ᄀ-ᅞ]|[ᅡ-ᇿ]/g) //일부 문자(한/영)만 허용함.
-                            if(Array.isArray(file_name)) file_name=file_name.join('').substr(0,100) //파일 이름은 글자 수 100자 이내
+                            if(Array.isArray(file_name)) file_name=file_name.join('');
                             else file_name=''
+
+                            //파일 이름은 글자 수 100자 이내
+                            let tmp_filename = file_name.split('.');
+                            if(tmp_filename.length>=2){
+                                // 확장자 있는 경우. 파일이름<100, 확장자명<10 제한
+                                let me = tmp_filename.splice(-1)[0];
+                                file_name = tmp_filename.join('').substr(0,100)+'.'+me.substr(0,10);
+                            }else{
+                                file_name = file_name.substr(0,100);
+                            }
+
                             console.log('[file_name]',file_name)
 
                             if(fs.existsSync('./files/'+file_name)||fs.existsSync('./tmp/'+file_name)){
@@ -317,6 +348,12 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
         });
     }
     else if(url_list[1]=='delete' && ok(decodeURIComponent(url_list[2])) && fs.existsSync('./files/'+decodeURIComponent(url_list[2]))){
+        if(level<2){
+            응답.writeHead(403,{'Content-Type': 'text/html; charset=utf-8'});
+            응답.end(`<script>alert('권한 없음')</script> <meta http-equiv="refresh" content="0;URL='/'" />`);
+            return;
+        }
+
         const file_name = decodeURIComponent(url_list[2])
         const file_url=`./files/`+file_name;
         fs.unlink(file_url,err=>{
@@ -328,7 +365,7 @@ var server = http.createServer((요청, 응답) => { Login.server(요청, 응답
     }
     else{
         응답.writeHead(404,{'Content-Type': 'text/html; charset=utf-8'});
-        응답.end("404 not found");
+        응답.end(`<script>alert('404 not found')</script> <meta http-equiv="refresh" content="0;URL='/'" />`);
     }
 })});
 
