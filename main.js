@@ -2,27 +2,13 @@ var http = require('http');
 var fs = require('fs');
 const port = 80;
 const make_index_html = require('./module/index_html').make_index_html
-const Login = require('./module/login_http').Login
+const Login = require('./module/login').Login
 const NFD2NFC = require('./module/NFC-NFD').NFD2NFC
 const S_Socket_Server = require("./module/s_socket_server").S_Socket_Server;
 const file_list_html = new S_Socket_Server('file_list_html',file_list_2_html())
 
-
 const iconvlite = require('iconv-lite');
-
-
-const readline = require("readline");
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-rl.on("line", function(line) {
-  console.log("hello !", line);
-  rl.close();
-}).on("close", function() {
-  process.exit();
-});
+const endmytype = require("./module/endbytype")
 
 
 //내 주소 알아내기

@@ -1,6 +1,6 @@
-//const SHA512 = require("./sha512").SHA512
 var fs = require('fs');
 const crypto = require('crypto');
+console.log('process.cwd()',process.cwd(), __dirname)
 
 const encrypt = ((val) => {
     let cipher = crypto.createCipheriv('aes-256-cbc', '1192f16753719483d1b0de41046ea2f4', 'e126cd4e2c172ffc');
@@ -32,11 +32,11 @@ const SHA512 = (txt)=>{
 //아님 소수로 해서 합성수는 소인수의 권한을 갖게... 2진법도 마찬가지 => 귀찮음.
 
 const Login = {
-    login_page_url : './auth/login.html',
-    pw_change_url : './auth/change_pw.html',
-    pw_url : './auth/auth_pw.txt',
-    signup_page_url : './auth/signup.html',
-    level_page_url : './auth/set_level.html',
+    login_page_url : __dirname+'/auth/login.html',
+    pw_change_url : __dirname+'/auth/change_pw.html',
+    pw_url : __dirname+'/auth/auth_pw.txt',
+    signup_page_url : __dirname+'/auth/signup.html',
+    level_page_url : __dirname+'/auth/set_level.html',
     allowed_cookies:[],
     ip_create_account_count:{},
     iP_create_account_check:(ip)=>{ //같은 ip에서 요청 많이 해오면 블락
@@ -71,7 +71,9 @@ const Login = {
         }
         return false;
     },
-    set_level:(values)=>{
+    set_level:(values, callback)=>{
+        values = values.filter(v=>!isNaN(v.level)&&(typeof v.account=='string'));
+        console.log('set_lev',values);
         const data = Login.get_account_data();
         //console.log('ckd',data);
         data.forEach(v=>{
@@ -79,7 +81,7 @@ const Login = {
                 if(v.account == vv.account) v.level = vv.level;
             })
         })
-        Login.save_changed_account(data);s
+        Login.save_changed_account(data, callback);
     },
     check_overlap:(account)=>{
         const data = Login.get_account_data();
@@ -104,10 +106,12 @@ const Login = {
         })
         Login.save_changed_account(data);
     },
-    save_changed_account:(data)=>{
+    save_changed_account:(data, callback)=>{
         const print_data = data.map(v=>`${v.level} ${encrypt(v.account)} ${encrypt(v.pw)}`).join('\n');
         fs.writeFile(Login.pw_url, print_data, err=>{
             if(err) console.log('비번 저장 관련 오류',err);
+
+            callback && callback(); //있으면 하기.
         })
         
     },
@@ -191,7 +195,8 @@ const Login = {
         if (['/auth/api/signin', '/auth/api/signup', '/auth/api/update_pw'].includes(url) && method=='POST') Login.post(req,res,(req,res,data)=>{
             if(typeof data.account =='string') data.account = decodeURIComponent(data.account); //아이디는 디코딩시켜거 알아보기 쉽게
 
-            console.log('[post_data]', data);
+            //비밀번호 보호를 위해 끄기 -> 해제하면 노출됨
+            //console.log('[post_data]', data);
 
             
             // 비었으면 리턴
@@ -295,8 +300,9 @@ const Login = {
 
             Login.post(req,res,(req,res,data)=>{
                 console.log('권한설정',data);
-                Login.set_level(data);
-                res.end('bibi')
+                
+                Login.set_level(data, ()=>{res.writeHead(200); res.end('ok')});
+                
             })
         }
         else callback(req, res, level)    
