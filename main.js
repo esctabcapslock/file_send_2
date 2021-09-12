@@ -8,8 +8,10 @@ const S_Socket_Server = require("./module/s_socket_server").S_Socket_Server;
 const file_list_html = new S_Socket_Server('file_list_html',file_list_2_html())
 
 const iconvlite = require('iconv-lite');
-const endmytype = require("./module/endbytype")
 
+//tmp, files 폴더 없으면 생성
+if(!fs.existsSync('./tmp')) fs.mkdirSync('./tmp');
+if(!fs.existsSync('./files')) fs.mkdirSync('./files');
 
 //내 주소 알아내기
 const my_ip = require("./module/my_ip").my_ip();
