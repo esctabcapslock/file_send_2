@@ -1,5 +1,6 @@
 var fs = require('fs');
 const crypto = require('crypto');
+const URL = require('url')
 console.log('process.cwd()',process.cwd(), __dirname)
 
 const encrypt = ((val) => {
@@ -85,14 +86,14 @@ const Login = {
     },
     check_overlap:(account)=>{
         const data = Login.get_account_data();
-        console.log('ckd',data);
+        console.log('[check_overlap]',data);
         const authed = data.some(v=> account == v.account);
         return authed;
     },
     add_account:(new_data)=>{
         console.log('[add_account]',new_data);
         const data = Login.get_account_data();
-        console.log('ckd',data);
+        console.log('[add_account]',data);
         data.push({level:1,account:new_data.account, pw:new_data.pw});
 
         Login.save_changed_account(data);
@@ -173,7 +174,11 @@ const Login = {
         res.writeHead(401, {'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<script>alert(\`${err}\`)</script><meta http-equiv="refresh" content="0;URL='/auth/login'"/>`)
     },
-    server:(req,res,callback)=>{
+    server:(req,res,callback_before_auth, callback_after_auth)=>{
+        //콜백: 인증 전후에 할 일.  req, res, level값 받음. 미인증이면 level이 null임
+        //callback_before_auth: 인증 전에 처리할 일. 처리 완료하면 true, 실패하면 false나, 값을 반환하지 않는다.
+        //callback_after_auth: 인증 후에 처리할 일.
+
         //console.log(req.headers.authorization)
         
         //const authentication = req.headers.authorization ? (new Buffer.from(req.headers.authorization.split(' ')[1], 'base64')).toString('utf8') : '';
@@ -183,6 +188,8 @@ const Login = {
         const method = req.method
         const url = req.url
         const referer = req.headers.referer
+        const pathname = typeof referer == 'string' ? URL.parse(referer).pathname : '';
+        
         const ip = req.headers['x-forwarded-for'] ||  req.connection.remoteAddress;
 
         //console.log('로그인=> 상태가',allowed, level, url)
@@ -191,13 +198,15 @@ const Login = {
         const id_regex = 	/^[a-zA-Z!@#$%^*+=\-0-9가-힣ㄱ-ㅎㅏ-ㅣ]{1,10}$/
         const pw_regex = /^[a-zA-Z!@#$%^*+=\-0-9]{1,30}$/;
 
+
+        if(callback_before_auth(req,res,level)) return;
+
         //url.startsWith('/auth/api/')
         if (['/auth/api/signin', '/auth/api/signup', '/auth/api/update_pw'].includes(url) && method=='POST') Login.post(req,res,(req,res,data)=>{
             if(typeof data.account =='string') data.account = decodeURIComponent(data.account); //아이디는 디코딩시켜거 알아보기 쉽게
 
             //비밀번호 보호를 위해 끄기 -> 해제하면 노출됨
-            //console.log('[post_data]', data);
-
+            console.log('[post_data]', data, '[referer]',pathname);
             
             // 비었으면 리턴
             if(!data.account || !data.pw || !id_regex.test(data.account) || !pw_regex.test(data.pw)) 
@@ -206,7 +215,7 @@ const Login = {
             data.pw = SHA512(data.pw); //해싱
 
             //요청별로...
-            if(!allowed && url=='/auth/api/signin' ){
+            if(!allowed && url=='/auth/api/signin' && pathname=='/auth/login'){
 
                 //인증 안되면 리턴
                 const check = Login.check_pw(data);
@@ -222,7 +231,7 @@ const Login = {
                 Login.remove_cookie(cookie)
                 res.end(`<meta http-equiv="refresh" content="0;URL='/'"/>`);
             }
-            else if (!allowed && url=='/auth/api/signup'){
+            else if (!allowed && url=='/auth/api/signup' && pathname=='/auth/signup'){
 
                 if(data.pw_2) data.pw_2 = SHA512(data.pw_2); //해싱                
 
@@ -241,7 +250,7 @@ const Login = {
                 Login.add_account(data);
                 res.end(`<meta http-equiv="refresh" content="0;URL='/auth/login'"/>`);
                 
-            }else if(allowed && url=='/auth/api/update_pw'){
+            }else if(allowed && url=='/auth/api/update_pw' && pathname=='/auth/edit_pw'){
                 
                 //형식확인
                 if(!pw_regex.test(data.next_pw)) {Login.not_auth(res,'비밀번호 형식을 만족하지 않음'); return;}
@@ -266,8 +275,8 @@ const Login = {
             res.end(file);
         }else if(!allowed){ //인증X인 기타경우
             res.writeHead(401, {'Content-Type': 'text/html; charset=utf-8' });
-            res.end(`<meta http-equiv="refresh" content="0;URL='/auth/login'" /> `)
-        }else if(['/auth/login','/auth/signup'].includes(url)){ //인증하고, 로그인/회원가입 시도시 거부...
+            res.end(`<script>alert('로그인이 필요한 기능입니다. 관련 페이지로 이동합니다.')</script><meta http-equiv="refresh" content="0;URL='/auth/login'" /> `)
+        }else if(['/auth/login','/auth/signup'].includes(url)){ //인증하고, 로그인/회원가입 시도시 메인페이지로
             res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8' });
             res.end(`<meta http-equiv="refresh" content="0;URL='/'" /> `)
         }
@@ -295,7 +304,7 @@ const Login = {
             res.writeHead(200,{'Content-Type': 'application/json; charset=utf8'});
             res.end(JSON.stringify(data));
         }
-        else if(url=='/auth/api/set_level' && method=='POST'){
+        else if(url=='/auth/api/set_level' && method=='POST' && pathname=='/auth/set_level'){
             if(level<3) {Login.not_auth(res,'권한이 없습니다'); return;}
 
             Login.post(req,res,(req,res,data)=>{
@@ -305,7 +314,7 @@ const Login = {
                 
             })
         }
-        else callback(req, res, level)    
+        else callback_after_auth(req, res, level)    
     }
 }
 

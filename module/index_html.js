@@ -1,5 +1,6 @@
 module.exports.make_index_html=make_index_html
-function make_index_html(html){
+function make_index_html(html, level){
+    console.log('[make_index_html]',html.length, level)
 return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -23,9 +24,12 @@ return `<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <a href='/auth/edit_pw'>비밀번호 변경</a>
+    ${level==null?
+    `<a href='/auth/login'>로그인</a>
+    <a href='/auth/signup'>회원가입</a>`:
+    `<a href='/auth/edit_pw'>비밀번호 변경</a>
     <a href='/auth/logout'>로그아웃</a>
-    <a href='/auth/set_level'>권한설정</a>
+    <a href='/auth/set_level'>권한설정</a>`}
     <h3>보내기</h3>
     <form action="./file" method="POST" id='file_input' enctype="multipart/form-data">
         <input type="file"  multiple name="name">
