@@ -140,6 +140,9 @@ var server = http.createServer((요청, 응답) => {
             let stream
             let mylog = ()=>{}//console.log// ()=>{}//console.log
             
+            const 중복파일_목록_알림용 = []; //사용자가 같은 이름을 갖은 파일을 업로드하면, 반영하지 않고 오류라고 알려준다.
+
+
             요청.on('data', (data) => {
                 // let now_cnt = cnt;
                 // cnt++;
@@ -158,7 +161,9 @@ var server = http.createServer((요청, 응답) => {
                 if (!진행중) return;
                 mylog('\n\ndata 조각 받음',data.length, post_data_len, file_size_maximum, past_data.length,'[진행중]',진행중,'단계',단계, '[file_name]',file_name)
                 let 아무것도안함 = true;
-                let 루프 = true
+                let 루프 = true;
+                
+                
                 post_data_len+=data.length
     
                 now_data  = Buffer.concat([past_data, data]);
@@ -202,6 +207,7 @@ var server = http.createServer((요청, 응답) => {
                                 console.log('[file_name]',file_name)
     
                                 if(fs.existsSync('./files/'+file_name)||fs.existsSync('./tmp/'+file_name)){
+                                    중복파일_목록_알림용.push(file_name);
                                     file_name=''
                                     if(stream) {stream.end(); stream=null}
                                 }else{
@@ -321,9 +327,16 @@ var server = http.createServer((요청, 응답) => {
                     응답.end('<script>alert("Payload Too Large"); location="/";</script>');
                     return;
                 }
-                응답.writeHead(303, {'location': '/'});
-                응답.end('.')
-                
+                else if(중복파일_목록_알림용.length){
+                    console.log('[중복파일_목록_알림용]',중복파일_목록_알림용);
+                응답.writeHead(403, {'Content-Type': 'text/html; charset=utf-8'});
+                응답.end(`<script>alert(unescape("${
+                    escape('['+중복파일_목록_알림용.join(', ')+'] 들과/와 같이 중복된 이름의 파일은 업로드 할 수 없습니다.')
+                    }"));location="/";</script>`)
+                }else{
+                    응답.writeHead(303, {'location': '/'});
+                    응답.end('');
+                }
                 return;
             })
             요청.on('error',()=>{
